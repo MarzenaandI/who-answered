@@ -29,6 +29,7 @@ The shareable summary contains monthly counts only, no titles, no message text, 
 - `gpt-4o-mini` / `gpt-4.1-mini` is usually the usage cap, not content.
 - Replies after a tool you switched on yourself (Deep Research, search) are counted separately, not treated as a swap.
 - The export records **which model wrote a reply, not who decided it**. It cannot tell a router from a click. If you never switched models by hand, say so when you share.
+- Click ▸ next to a thread title to see the first words of each reply written by another model. Shown on screen only, never in the shareable summary.
 - Only the visible branch of each conversation is counted; edited or regenerated branches are skipped.
 - Share everything you find, including GPT‑4o replies you think were harmful. A summary trimmed to fit a thesis is easy to dismiss.
 

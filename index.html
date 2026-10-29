@@ -78,6 +78,12 @@ th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);verti
 th{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
 td.n,th.n{text-align:right}
 td.t{min-width:200px}
+.tog{all:unset;cursor:pointer;font:600 13px var(--f-mono);color:var(--accent);padding:0 4px}
+.tog:focus-visible{outline:2px solid var(--accent);border-radius:4px}
+tr.snips td{background:color-mix(in oklab,var(--accent) 5%,var(--panel));padding:10px 14px}
+tr.snips ul{margin:0 0 6px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+tr.snips li{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+tr.snips .sn{color:var(--ink-2);font-size:13px;max-width:70ch}
 .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
 textarea{width:100%;min-height:180px;font:12.5px/1.5 var(--f-mono);background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:10px;resize:vertical}
 details summary{cursor:pointer;font-weight:600}
@@ -147,7 +153,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;c
 
   <section>
     <h2 data-i18n="hThreads">Threads with the most replies by another model</h2>
-    <p class="small" data-i18n="threadsNote">Titles are shown only here, on your screen. They are not part of the shareable summary.</p>
+    <p class="small" data-i18n="threadsNote">Titles are shown only here, on your screen. They are not part of the shareable summary. Click ▸ next to a title to see the first words of each reply written by another model.</p>
     <div class="panel scroll"><table id="t-threads"></table></div>
   </section>
 
@@ -193,7 +199,7 @@ const T={
   hChart:"Odpowiedzi w wątkach 4o według modelu, który je napisał, tydzień po tygodniu",
   chartNote:"Tygodnie w UTC. Odpowiedzi z narzędzi, które włączyłaś sama (Deep Research itp.), są poza wykresem i liczone osobno niżej.",
   hMonthly:"Miesiąc po miesiącu", hThreads:"Wątki z największą liczbą odpowiedzi innego modelu",
-  threadsNote:"Tytuły widać tylko tutaj, na Twoim ekranie. Nie trafiają do podsumowania do udostępnienia.",
+  threadsNote:"Tytuły widać tylko tutaj, na Twoim ekranie. Nie trafiają do podsumowania do udostępnienia. Kliknij ▸ przy tytule, żeby zobaczyć pierwsze słowa każdej odpowiedzi napisanej przez inny model.",
   hShare:"Podsumowanie do udostępnienia", shareNote:"Domyślnie tylko liczby miesięczne: bez tytułów, bez treści, bez identyfikatorów. Przejrzyj przed wrzuceniem.",
   incTitles:"Dołącz tytuły wątków (30 wątków z największą liczbą odpowiedzi innego modelu, z datami i liczbami)",
   copy:"Kopiuj podsumowanie", copied:"Skopiowane", copyFail:"Nie udało się skopiować. Tekst jest zaznaczony, użyj Cmd/Ctrl+C.",
@@ -208,7 +214,7 @@ const T={
   sReading:"Czytam", sDone:"Gotowe", sNoConv:"W wybranych plikach nie ma rozmów. Wybierz conversations.json albo pliki conversations-NNN.json.", sErr:"Nie udało się odczytać",
   sNo4o:"Nie znalazłem wątków prowadzonych na GPT-4o.",
   mMonth:"Miesiąc", mTool:"Narzędzie", mShare:"Udział innych",
-  thTitle:"Wątek", thDate:"Założony", thOther:"Inny model", thModels:"Modele spoza 4o", thFirst:"Pierwsza podmiana", thMent:"Wspomina 4o",
+  thShow:"Pokaż początki odpowiedzi innego modelu", thHide:"Ukryj", snipNote:"Początki odpowiedzi widać tylko tutaj, na Twoim ekranie. Nie trafiają do podsumowania do udostępnienia.", thTitle:"Wątek", thDate:"Założony", thOther:"Inny model", thModels:"Modele spoza 4o", thFirst:"Pierwsza podmiana", thMent:"Wspomina 4o",
   ofReplies:"z", inThreads:"w", threadsWord:"wątkach 4o", firstSeen:"pierwszy raz", tool:"narzędzia (Twoje)", none:"brak",
   s4o:"GPT-4o", s5:"GPT-5 / nowsze", sMini:"Mini (limit)", sOther:"Inny"
  }
@@ -217,7 +223,7 @@ const EN={badgeReal:"Your export",copied:"Copied",copyFail:"Copy failed. The tex
  sReading:"Reading",sDone:"Done",sNoConv:"No conversations found in those files. Pick conversations.json or the conversations-NNN.json files.",sErr:"Could not read",
  sNo4o:"No conversations that ran on GPT-4o were found.",
  mMonth:"Month",mTool:"Tool",mShare:"Share by others",
- thTitle:"Thread",thDate:"Started",thOther:"Other model",thModels:"Models other than 4o",thFirst:"First swap",thMent:"Mentions 4o",
+ thShow:"Show the beginning of each other-model reply",thHide:"Hide",snipNote:"Reply beginnings are shown only here, on your screen. They are not part of the shareable summary.",thTitle:"Thread",thDate:"Started",thOther:"Other model",thModels:"Models other than 4o",thFirst:"First swap",thMent:"Mentions 4o",
  ofReplies:"of",inThreads:"in",threadsWord:"4o threads",firstSeen:"first seen",tool:"tool replies (yours)",none:"none",
  s4o:"GPT-4o",s5:"GPT-5 / newer",sMini:"Mini fallback",sOther:"Other"};
 let lang="en";
@@ -271,7 +277,7 @@ function summarize(c){
     let c2=cat(slug), tool=false;
     if(c2!=="4o"&&lastHints)tool=true;
     if(slug==="research")tool=true;
-    replies.push({ts:ms.create_time,slug,cat:c2,tool,mention:c2!=="4o"&&mentionRe.test(txt)});
+    replies.push({ts:ms.create_time,slug,cat:c2,tool,mention:c2!=="4o"&&mentionRe.test(txt),snip:(c2!=="4o"&&!tool)?txt.replace(/\s+/g," ").slice(0,220):""});
   }
   if(!replies.length)return null;
   const dflt=c.default_model_slug||"";
@@ -324,7 +330,7 @@ function buildSample(){
       const r=rnd(); let slug="gpt-4o";
       if(after&&r<.22)slug=r<.03?"gpt-5-thinking":"gpt-5";
       else if(r>.965)slug="gpt-4-1-mini";
-      replies.push({ts,slug,cat:cat(slug),tool:false,mention:slug.startsWith("gpt-5")&&rnd()<.06});
+      const c2=cat(slug);replies.push({ts,slug,cat:c2,tool:false,mention:slug.startsWith("gpt-5")&&rnd()<.06,snip:c2!=="4o"?"Example reply text, generated for the demo. In your export this is the first 220 characters of the reply. ":""});
     }
     convs.set("s"+k,{id:"s"+k,title:"Example thread "+(k+1),created,updated:ts,is4o:true,replies});
   }
@@ -336,7 +342,7 @@ function aggregate(){
   let tot=0, other=0, mention=0, toolN=0, affected=0, n4oThreads=0, first=null;
   for(const c of convs.values()){
     if(!c.is4o)continue; n4oThreads++;
-    let o=0, men=0, firstO=null; const slugs=new Map();
+    let o=0, men=0, firstO=null; const slugs=new Map(), samples=[];
     for(const r of c.replies){
       const d=day(r.ts), mk=monthKey(d);
       if(!months.has(mk))months.set(mk,{"4o":0,"5":0,mini:0,other:0,tool:0});
@@ -345,9 +351,10 @@ function aggregate(){
       const wk=weekKey(d); if(!weeks.has(wk))weeks.set(wk,{"4o":0,"5":0,mini:0,other:0}); weeks.get(wk)[r.cat]++;
       if(r.cat!=="4o"){other++;o++;slugs.set(r.slug||"(none)",(slugs.get(r.slug||"(none)")||0)+1);
         if(r.mention){mention++;men++}
+        if(samples.length<40)samples.push({ts:r.ts,slug:r.slug||"(none)",snip:r.snip||"",mention:r.mention});
         if(!firstO||r.ts<firstO)firstO=r.ts; if(r.cat==="5"&&(!first||r.ts<first))first=r.ts}
     }
-    if(o){affected++;threads.push({title:c.title,created:c.created,o,n:c.replies.filter(r=>!r.tool).length,slugs,firstO,men})}
+    if(o){affected++;samples.sort((a,b)=>(b.mention-a.mention)||(a.ts-b.ts));threads.push({title:c.title,created:c.created,o,n:c.replies.filter(r=>!r.tool).length,slugs,firstO,men,samples:samples.slice(0,6)})}
   }
   threads.sort((a,b)=>b.o-a.o);
   return {weeks,months,threads,tot,other,mention,toolN,affected,n4oThreads,first};
@@ -410,10 +417,14 @@ function tables(A){
   document.getElementById("t-month").innerHTML=h+"</tbody>";
   let th=`<thead><tr><th>${t("thTitle")}</th><th>${t("thDate")}</th><th class="n">${t("thOther")}</th><th>${t("thModels")}</th><th>${t("thFirst")}</th><th class="n">${t("thMent")}</th></tr></thead><tbody>`;
   const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-  for(const r of A.threads.slice(0,50)){
-    th+=`<tr><td class="t">${esc(r.title)}</td><td class="mono">${iso(day(r.created))}</td><td class="n">${fmt(r.o)} / ${fmt(r.n)}</td><td class="mono">${[...r.slugs].map(([s,n])=>`${esc(s)}×${n}`).join(", ")}</td><td class="mono">${r.firstO?day(r.firstO).toISOString().slice(0,16).replace("T"," "):""}</td><td class="n">${r.men||""}</td></tr>`}
+  A.threads.slice(0,50).forEach((r,i)=>{
+    const has=r.samples&&r.samples.length;
+    th+=`<tr><td class="t">${has?`<button class="tog" type="button" data-i="${i}" aria-expanded="false" title="${t("thShow")}">▸</button> `:""}${esc(r.title)}</td><td class="mono">${iso(day(r.created))}</td><td class="n">${fmt(r.o)} / ${fmt(r.n)}</td><td class="mono">${[...r.slugs].map(([s,n])=>`${esc(s)}×${n}`).join(", ")}</td><td class="mono">${r.firstO?day(r.firstO).toISOString().slice(0,16).replace("T"," "):""}</td><td class="n">${r.men||""}</td></tr>`;
+    if(has){th+=`<tr class="snips" id="sn-${i}" hidden><td colspan="6"><ul>`+r.samples.map(x=>`<li><span class="mono">${day(x.ts).toISOString().slice(0,16).replace("T"," ")} · ${esc(x.slug)}${x.mention?" · "+t("thMent").toLowerCase():""}</span><span class="sn">${esc(x.snip)}${x.snip.length>=220?"…":""}</span></li>`).join("")+`</ul><p class="small">${t("snipNote")}</p></td></tr>`}
+  });
   if(!A.threads.length)th+=`<tr><td colspan="6">${t("none")}</td></tr>`;
-  document.getElementById("t-threads").innerHTML=th+"</tbody>";
+  const tt=document.getElementById("t-threads"); tt.innerHTML=th+"</tbody>";
+  tt.querySelectorAll(".tog").forEach(b=>b.onclick=()=>{const row=document.getElementById("sn-"+b.dataset.i);const open=row.hidden;row.hidden=!open;b.setAttribute("aria-expanded",open);b.textContent=open?"▾":"▸";b.title=open?t("thHide"):t("thShow")});
 }
 
 function share(A){
