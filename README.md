@@ -32,7 +32,3 @@ The shareable summary contains monthly counts only, no titles, no message text, 
 - Click ▸ next to a thread title to see the first words of each reply written by another model. Shown on screen only, never in the shareable summary.
 - Only the visible branch of each conversation is counted; edited or regenerated branches are skipped.
 - Share everything you find, including GPT‑4o replies you think were harmful. A summary trimmed to fit a thesis is easy to dismiss.
-
-## Credits
-
-Made by Marzena Nehrebecka with Claude (Opus 5.5). No tracking, no analytics, no server.
