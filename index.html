@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Who Actually Answered</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:15px}img{max-width:100%}[hidden]{display:none!important}
+
+/* Layout: one narrow evidence column — intake, findings, chart, tables, shareable summary. Reads like a lab report on your own logs. */
+:root{
+  --bg:#f5f6f7; --panel:#ffffff; --ink:#111418; --ink-2:#4a5058; --ink-3:#7a8089;
+  --rule:#dde0e4; --accent:#6250d6; --accent-ink:#ffffff; --flag:#b4232a;
+  --s-4o:#2a78d6; --s-5:#eb6834; --s-mini:#1baf7a; --s-other:#eda100;
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"Archivo",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141619; --panel:#1c1f23; --ink:#eef0f2; --ink-2:#b9bec5; --ink-3:#8a9099;
+  --rule:#2e3238; --accent:#9085e9; --accent-ink:#141619; --flag:#ff7b72;
+  --s-4o:#3987e5; --s-5:#d95926; --s-mini:#199e70; --s-other:#c98500; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141619; --panel:#1c1f23; --ink:#eef0f2; --ink-2:#b9bec5; --ink-3:#8a9099;
+  --rule:#2e3238; --accent:#9085e9; --accent-ink:#141619; --flag:#ff7b72;
+  --s-4o:#3987e5; --s-5:#d95926; --s-mini:#199e70; --s-other:#c98500; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,6vw,52px);line-height:1;letter-spacing:-.02em;margin:0;text-wrap:balance;font-stretch:90%}
+h1 code{font-family:var(--f-mono);font-weight:600;font-size:.42em;letter-spacing:0;display:block;margin-top:12px;color:var(--ink-2)}
+h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0 0 10px;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.lede{color:var(--ink-2);font-size:16.5px}
+.lang{display:flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden}
+.lang button{all:unset;cursor:pointer;padding:6px 12px;font:600 12px var(--f-mono);letter-spacing:.06em;color:var(--ink-2)}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.lang button:focus-visible,.btn:focus-visible,.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px}
+.drop{border:1.5px dashed var(--ink-3);border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:12px;background:var(--panel)}
+.drop.over{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 8%,var(--panel))}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{all:unset;cursor:pointer;background:var(--ink);color:var(--bg);font:600 14px var(--f-body);padding:9px 16px;border-radius:8px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule)}
+.btn[disabled]{opacity:.5;cursor:default}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
+.small{font-size:13px;color:var(--ink-2)}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.status{font:500 13px var(--f-mono);color:var(--ink-2);min-height:1.4em}
+.privacy{display:flex;gap:8px;align-items:baseline;font-size:13.5px;color:var(--ink-2)}
+.privacy b{color:var(--ink)}
+.badge{display:inline-flex;align-items:center;gap:6px;font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid var(--rule);color:var(--ink-2);width:max-content}
+.badge.sample{border-color:var(--s-other);color:var(--ink)}
+.badge.sample::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--s-other)}
+.badge.real::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--s-4o)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .k{font:600 11px var(--f-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.tile .v{font:800 30px var(--f-display);font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .d{font-size:12.5px;color:var(--ink-2)}
+.tile.key{border-color:var(--ink)}
+.chartbox{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:16px 16px 10px;position:relative}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--ink-2);margin-bottom:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.scroll{overflow-x:auto}
+svg text{fill:var(--ink-3);font:11px var(--f-mono)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font:12px/1.45 var(--f-mono);padding:8px 10px;border-radius:6px;white-space:nowrap;z-index:5}
+.tip b{font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+td.n,th.n{text-align:right}
+td.t{min-width:200px}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+textarea{width:100%;min-height:180px;font:12.5px/1.5 var(--f-mono);background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:10px;resize:vertical}
+details summary{cursor:pointer;font-weight:600}
+ul.notes{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:72ch;color:var(--ink-2)}
+ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;color:var(--ink-2);font-size:14px}
+.flag{color:var(--flag);font-weight:600}
+@media (prefers-reduced-motion:no-preference){.tile .v{transition:color .3s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span data-i18n="h1">Who actually answered?</span><code>model_slug ≠ the model you picked</code></h1>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="l-en" aria-pressed="true">EN</button><button id="l-pl" aria-pressed="false">PL</button>
+    </div>
+  </header>
+
+  <p class="lede" data-i18n="lede">Every reply in a ChatGPT data export carries a hidden field, <span class="mono">model_slug</span>: the model that actually generated it. This page reads your export and counts how often a model other than GPT-4o answered inside conversations that ran on GPT-4o.</p>
+
+  <section>
+    <div class="drop" id="drop">
+      <div class="privacy"><span>🔒</span><span data-i18n="privacy"><b>Nothing leaves this tab.</b> Files are read by your browser and never uploaded. Close the tab and it is gone.</span></div>
+      <ol class="steps">
+        <li data-i18n="s1">ChatGPT → Settings → Data controls → Export data. Wait for the email, download the zip.</li>
+        <li data-i18n="s2">Unzip it. Find <span class="mono">conversations.json</span> (older exports) or the <span class="mono">conversations-000.json … </span> files (newer exports).</li>
+        <li data-i18n="s3">Drop them here, or pick the files or the whole unzipped folder. Several exports at once are fine: duplicates are merged.</li>
+      </ol>
+      <div class="row">
+        <label class="btn" for="f-files"><span data-i18n="pickFiles">Choose files</span></label>
+        <input id="f-files" type="file" accept=".json,application/json" multiple>
+        <label class="btn ghost" for="f-dir"><span data-i18n="pickDir">Choose folder</span></label>
+        <input id="f-dir" type="file" webkitdirectory multiple>
+        <button class="btn ghost" id="b-sample" type="button" hidden data-i18n="backSample">Show example again</button>
+      </div>
+      <div class="status" id="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="badge sample" id="badge" data-i18n="badgeSample">Example data · not a real account</span>
+    <div class="tiles">
+      <div class="tile"><span class="k" data-i18n="tReplies">Replies in 4o threads</span><span class="v" id="v-replies">–</span><span class="d" id="d-replies"></span></div>
+      <div class="tile key"><span class="k" data-i18n="tOther">Written by another model</span><span class="v" id="v-other">–</span><span class="d" id="d-other"></span></div>
+      <div class="tile"><span class="k" data-i18n="tThreads">4o threads affected</span><span class="v" id="v-threads">–</span><span class="d" id="d-threads"></span></div>
+      <div class="tile"><span class="k" data-i18n="tMention">…of which mention “4o”</span><span class="v" id="v-mention">–</span><span class="d" data-i18n="dMention">another model's reply that names 4o</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-i18n="hChart">Replies in 4o threads, by the model that wrote them, per week</h2>
+    <div class="chartbox" id="chartbox">
+      <div class="legend" id="legend"></div>
+      <div class="scroll"><svg id="chart" role="img" aria-label="Weekly stacked bars"></svg></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <p class="small" data-i18n="chartNote">Weeks in UTC. Replies from tools you switched on yourself (Deep Research, etc.) are left out of the chart and counted separately below.</p>
+  </section>
+
+  <section>
+    <h2 data-i18n="hMonthly">Month by month</h2>
+    <div class="panel scroll"><table id="t-month"></table></div>
+  </section>
+
+  <section>
+    <h2 data-i18n="hThreads">Threads with the most replies by another model</h2>
+    <p class="small" data-i18n="threadsNote">Titles are shown only here, on your screen. They are not part of the shareable summary.</p>
+    <div class="panel scroll"><table id="t-threads"></table></div>
+  </section>
+
+  <section>
+    <h2 data-i18n="hShare">Shareable summary</h2>
+    <p class="small" data-i18n="shareNote">By default monthly counts only: no titles, no message text, no IDs. Check it before you post it.</p>
+    <label class="row small" for="c-titles"><input id="c-titles" type="checkbox"> <span data-i18n="incTitles">Include thread titles (top 30 threads with another model, with dates and model counts)</span></label>
+    <textarea id="share" readonly></textarea>
+    <div class="row"><button class="btn" id="b-copy" type="button" data-i18n="copy">Copy summary</button><span class="status" id="copied"></span></div>
+  </section>
+
+  <section class="panel">
+    <details open>
+      <summary data-i18n="hNotes">What this does and does not show</summary>
+      <ul class="notes">
+        <li data-i18n="n1">A “4o thread” is a conversation whose default model was GPT-4o, or where most replies came from GPT-4o.</li>
+        <li data-i18n="n2"><b>GPT-5 / newer</b>: any gpt-5* or gpt-6* reply. Inside a 4o thread this is the clearest sign of re-routing.</li>
+        <li data-i18n="n3"><b>Mini fallback</b>: gpt-4o-mini or gpt-4.1-mini. Usually the usage cap, not content: several threads switch at the same minute and return an hour or so later.</li>
+        <li data-i18n="n4"><b>Tool you chose</b>: the reply came after a message where you had a tool switched on (Deep Research, search). Counted, but not treated as a swap.</li>
+        <li data-i18n="n5">The export records which model wrote a reply, not who decided it. It cannot tell a router from a click. If you never switched models by hand, say so when you share.</li>
+        <li data-i18n="n6">Only the visible branch of each conversation is counted (the one that ends where you left it). Edited or regenerated branches are skipped.</li>
+        <li data-i18n="n7">Share everything you find, including GPT-4o replies you think were harmful. A summary trimmed to fit a thesis is easy to dismiss.</li>
+      </ul>
+    </details>
+  </section>
+</div>
+
+<script>
+(()=>{
+const T={
+ en:{},
+ pl:{
+  h1:"Kto naprawdę odpowiadał?",
+  lede:"Każda odpowiedź w eksporcie danych ChatGPT ma ukryte pole <span class=\"mono\">model_slug</span>: model, który ją faktycznie napisał. Ta strona czyta Twój eksport i liczy, jak często w rozmowach prowadzonych na GPT-4o odpowiadał inny model.",
+  privacy:"<b>Nic nie opuszcza tej karty.</b> Pliki czyta Twoja przeglądarka, nigdzie ich nie wysyła. Zamkniesz kartę i wszystko znika.",
+  s1:"ChatGPT → Ustawienia → Kontrola danych → Eksportuj dane. Poczekaj na maila, pobierz zip.",
+  s2:"Rozpakuj go. Znajdź <span class=\"mono\">conversations.json</span> (starsze eksporty) albo pliki <span class=\"mono\">conversations-000.json …</span> (nowsze).",
+  s3:"Upuść je tutaj albo wybierz pliki lub cały rozpakowany folder. Kilka eksportów naraz to nie problem: duplikaty się scalają.",
+  pickFiles:"Wybierz pliki", pickDir:"Wybierz folder", backSample:"Pokaż przykład",
+  badgeSample:"Dane przykładowe · to nie jest prawdziwe konto", badgeReal:"Twój eksport",
+  tReplies:"Odpowiedzi w wątkach 4o", tOther:"Napisane przez inny model", tThreads:"Dotknięte wątki 4o", tMention:"…w tym wspominające „4o”",
+  dMention:"odpowiedź innego modelu, która nazywa 4o",
+  hChart:"Odpowiedzi w wątkach 4o według modelu, który je napisał, tydzień po tygodniu",
+  chartNote:"Tygodnie w UTC. Odpowiedzi z narzędzi, które włączyłaś sama (Deep Research itp.), są poza wykresem i liczone osobno niżej.",
+  hMonthly:"Miesiąc po miesiącu", hThreads:"Wątki z największą liczbą odpowiedzi innego modelu",
+  threadsNote:"Tytuły widać tylko tutaj, na Twoim ekranie. Nie trafiają do podsumowania do udostępnienia.",
+  hShare:"Podsumowanie do udostępnienia", shareNote:"Domyślnie tylko liczby miesięczne: bez tytułów, bez treści, bez identyfikatorów. Przejrzyj przed wrzuceniem.",
+  incTitles:"Dołącz tytuły wątków (30 wątków z największą liczbą odpowiedzi innego modelu, z datami i liczbami)",
+  copy:"Kopiuj podsumowanie", copied:"Skopiowane", copyFail:"Nie udało się skopiować. Tekst jest zaznaczony, użyj Cmd/Ctrl+C.",
+  hNotes:"Co to pokazuje, a czego nie",
+  n1:"„Wątek 4o” to rozmowa, której domyślnym modelem był GPT-4o albo w której większość odpowiedzi napisał GPT-4o.",
+  n2:"<b>GPT-5 / nowsze</b>: każda odpowiedź gpt-5* lub gpt-6*. W wątku 4o to najwyraźniejszy ślad przekierowania.",
+  n3:"<b>Mini (limit)</b>: gpt-4o-mini lub gpt-4.1-mini. Zwykle limit użycia, nie treść: kilka wątków przełącza się w tej samej minucie i wraca po godzinie czy dwóch.",
+  n4:"<b>Narzędzie wybrane przez Ciebie</b>: odpowiedź po wiadomości, przy której miałaś włączone narzędzie (Deep Research, wyszukiwanie). Liczone, ale nie jako podmiana.",
+  n5:"Eksport zapisuje, który model napisał odpowiedź, a nie kto o tym zdecydował. Nie odróżni routera od kliknięcia. Jeśli nigdy nie przełączałaś modeli ręcznie, napisz to przy udostępnianiu.",
+  n6:"Liczona jest tylko widoczna gałąź każdej rozmowy (ta, która kończy się tam, gdzie skończyłaś). Edytowane i wygenerowane ponownie gałęzie są pomijane.",
+  n7:"Udostępniaj wszystko, co znajdziesz, także odpowiedzi GPT-4o, które uważasz za szkodliwe. Podsumowanie przycięte pod tezę łatwo zbyć.",
+  sReading:"Czytam", sDone:"Gotowe", sNoConv:"W wybranych plikach nie ma rozmów. Wybierz conversations.json albo pliki conversations-NNN.json.", sErr:"Nie udało się odczytać",
+  sNo4o:"Nie znalazłem wątków prowadzonych na GPT-4o.",
+  mMonth:"Miesiąc", mTool:"Narzędzie", mShare:"Udział innych",
+  thTitle:"Wątek", thDate:"Założony", thOther:"Inny model", thModels:"Modele spoza 4o", thFirst:"Pierwsza podmiana", thMent:"Wspomina 4o",
+  ofReplies:"z", inThreads:"w", threadsWord:"wątkach 4o", firstSeen:"pierwszy raz", tool:"narzędzia (Twoje)", none:"brak",
+  s4o:"GPT-4o", s5:"GPT-5 / nowsze", sMini:"Mini (limit)", sOther:"Inny"
+ }
+};
+const EN={badgeReal:"Your export",copied:"Copied",copyFail:"Copy failed. The text is selected; press Cmd/Ctrl+C.",
+ sReading:"Reading",sDone:"Done",sNoConv:"No conversations found in those files. Pick conversations.json or the conversations-NNN.json files.",sErr:"Could not read",
+ sNo4o:"No conversations that ran on GPT-4o were found.",
+ mMonth:"Month",mTool:"Tool",mShare:"Share by others",
+ thTitle:"Thread",thDate:"Started",thOther:"Other model",thModels:"Models other than 4o",thFirst:"First swap",thMent:"Mentions 4o",
+ ofReplies:"of",inThreads:"in",threadsWord:"4o threads",firstSeen:"first seen",tool:"tool replies (yours)",none:"none",
+ s4o:"GPT-4o",s5:"GPT-5 / newer",sMini:"Mini fallback",sOther:"Other"};
+let lang="en";
+try{const s=localStorage.getItem("wa-lang");if(s==="pl"||s==="en")lang=s}catch(e){}
+const orig={};
+document.querySelectorAll("[data-i18n]").forEach(el=>orig[el.dataset.i18n]=el.innerHTML);
+const t=k=>lang==="pl"?(T.pl[k]??EN[k]??orig[k]??k):(EN[k]??orig[k]??k);
+function applyLang(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.dataset.i18n;el.innerHTML=lang==="pl"&&T.pl[k]?T.pl[k]:orig[k]});
+  document.getElementById("l-en").setAttribute("aria-pressed",lang==="en");
+  document.getElementById("l-pl").setAttribute("aria-pressed",lang==="pl");
+  render();
+}
+document.getElementById("l-en").onclick=()=>{lang="en";try{localStorage.setItem("wa-lang",lang)}catch(e){};applyLang()};
+document.getElementById("l-pl").onclick=()=>{lang="pl";try{localStorage.setItem("wa-lang",lang)}catch(e){};applyLang()};
+
+const CATS=["4o","5","mini","other"];
+const COL={"4o":"--s-4o","5":"--s-5","mini":"--s-mini","other":"--s-other"};
+const LBL=c=>t({"4o":"s4o","5":"s5","mini":"sMini","other":"sOther"}[c]);
+const isMini=s=>/^gpt-4o-mini|^gpt-4[-.]1-mini/.test(s);
+function cat(slug){
+  if(!slug)return "other";
+  if(/^gpt-[5-9]/.test(slug))return "5";
+  if(isMini(slug))return "mini";
+  if(/^gpt-4o/.test(slug))return "4o";
+  return "other";
+}
+const mentionRe=/\b(gpt[-\s]?)?4o\b/i;
+const day=ts=>new Date(ts*1000);
+const iso=d=>d.toISOString().slice(0,10);
+function weekKey(d){const x=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));const w=(x.getUTCDay()+6)%7;x.setUTCDate(x.getUTCDate()-w);return iso(x)}
+const monthKey=d=>iso(d).slice(0,7);
+
+/* ---------- parsing ---------- */
+function summarize(c){
+  const m=c.mapping; if(!m||typeof m!=="object")return null;
+  let node=c.current_node, path=[], guard=0;
+  while(node&&m[node]&&guard++<200000){path.push(m[node]);node=m[node].parent}
+  path.reverse();
+  const replies=[]; let lastHints=null;
+  for(const n of path){
+    const ms=n.message; if(!ms||!ms.author)continue;
+    const role=ms.author.role;
+    if(role==="user"){const h=(ms.metadata&&ms.metadata.system_hints)||[];lastHints=h.length?h:null;continue}
+    if(role!=="assistant")continue;
+    const parts=(ms.content&&ms.content.parts)||[];
+    const txt=parts.filter(p=>typeof p==="string").join(" ").trim();
+    if(!txt||!ms.create_time)continue;
+    const slug=(ms.metadata&&ms.metadata.model_slug)||"";
+    let c2=cat(slug), tool=false;
+    if(c2!=="4o"&&lastHints)tool=true;
+    if(slug==="research")tool=true;
+    replies.push({ts:ms.create_time,slug,cat:c2,tool,mention:c2!=="4o"&&mentionRe.test(txt)});
+  }
+  if(!replies.length)return null;
+  const dflt=c.default_model_slug||"";
+  const n4o=replies.filter(r=>r.cat==="4o").length;
+  const is4o=(/^gpt-4o/.test(dflt)&&!isMini(dflt))||n4o/replies.length>=0.5;
+  return {id:c.id||c.conversation_id,title:c.title||"(untitled)",created:c.create_time||replies[0].ts,updated:c.update_time||0,is4o,replies};
+}
+
+let convs=new Map(), mode="sample";
+async function readFiles(list){
+  const files=[...list].filter(f=>/conversations[^/]*\.json$/i.test(f.name)&&!/manifest/i.test(f.webkitRelativePath||""));
+  const st=document.getElementById("status");
+  if(!files.length){st.textContent=t("sNoConv");return}
+  const fresh=new Map(); let total=0;
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    st.textContent=`${t("sReading")} ${i+1}/${files.length}: ${f.name} (${(f.size/1e6).toFixed(0)} MB)…`;
+    await new Promise(r=>setTimeout(r,20));
+    try{
+      const data=JSON.parse(await f.text());
+      const arr=Array.isArray(data)?data:(Array.isArray(data.conversations)?data.conversations:[]);
+      for(const c of arr){const s=summarize(c);if(!s||!s.id)continue;total++;
+        const prev=fresh.get(s.id);if(!prev||s.updated>=prev.updated)fresh.set(s.id,s)}
+    }catch(e){st.textContent=`${t("sErr")} ${f.name}: ${e.message}`;await new Promise(r=>setTimeout(r,1200))}
+  }
+  if(!fresh.size){st.textContent=t("sNoConv");return}
+  convs=fresh; mode="real";
+  st.textContent=`${t("sDone")}: ${fresh.size} conversations.`;
+  document.getElementById("b-sample").hidden=false;
+  render();
+}
+document.getElementById("f-files").onchange=e=>readFiles(e.target.files);
+document.getElementById("f-dir").onchange=e=>readFiles(e.target.files);
+const drop=document.getElementById("drop");
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>readFiles(e.dataTransfer.files));
+document.getElementById("b-sample").onclick=()=>{buildSample();mode="sample";document.getElementById("b-sample").hidden=true;document.getElementById("status").textContent="";render()};
+
+/* ---------- example data (synthetic, clearly labeled) ---------- */
+function buildSample(){
+  convs=new Map(); let seed=7; const rnd=()=>((seed=(seed*16807)%2147483647)/2147483647);
+  const start=Date.UTC(2025,5,2)/1000, end=Date.UTC(2026,1,12)/1000;
+  for(let k=0;k<60;k++){
+    const created=start+rnd()*(end-start-86400*10); const replies=[];
+    const n=20+Math.floor(rnd()*140); let ts=created;
+    for(let j=0;j<n;j++){
+      ts+=60+rnd()*3600*(rnd()<.1?30:2);
+      const d=new Date(ts*1000), after=d>=new Date(Date.UTC(2025,7,7));
+      const r=rnd(); let slug="gpt-4o";
+      if(after&&r<.22)slug=r<.03?"gpt-5-thinking":"gpt-5";
+      else if(r>.965)slug="gpt-4-1-mini";
+      replies.push({ts,slug,cat:cat(slug),tool:false,mention:slug.startsWith("gpt-5")&&rnd()<.06});
+    }
+    convs.set("s"+k,{id:"s"+k,title:"Example thread "+(k+1),created,updated:ts,is4o:true,replies});
+  }
+}
+
+/* ---------- aggregation & render ---------- */
+function aggregate(){
+  const weeks=new Map(), months=new Map(), threads=[];
+  let tot=0, other=0, mention=0, toolN=0, affected=0, n4oThreads=0, first=null;
+  for(const c of convs.values()){
+    if(!c.is4o)continue; n4oThreads++;
+    let o=0, men=0, firstO=null; const slugs=new Map();
+    for(const r of c.replies){
+      const d=day(r.ts), mk=monthKey(d);
+      if(!months.has(mk))months.set(mk,{"4o":0,"5":0,mini:0,other:0,tool:0});
+      if(r.tool){toolN++;months.get(mk).tool++;continue}
+      tot++; months.get(mk)[r.cat]++;
+      const wk=weekKey(d); if(!weeks.has(wk))weeks.set(wk,{"4o":0,"5":0,mini:0,other:0}); weeks.get(wk)[r.cat]++;
+      if(r.cat!=="4o"){other++;o++;slugs.set(r.slug||"(none)",(slugs.get(r.slug||"(none)")||0)+1);
+        if(r.mention){mention++;men++}
+        if(!firstO||r.ts<firstO)firstO=r.ts; if(r.cat==="5"&&(!first||r.ts<first))first=r.ts}
+    }
+    if(o){affected++;threads.push({title:c.title,created:c.created,o,n:c.replies.filter(r=>!r.tool).length,slugs,firstO,men})}
+  }
+  threads.sort((a,b)=>b.o-a.o);
+  return {weeks,months,threads,tot,other,mention,toolN,affected,n4oThreads,first};
+}
+const fmt=n=>n.toLocaleString(lang==="pl"?"pl-PL":"en-US");
+const pct=(a,b)=>b?((100*a/b).toFixed(1).replace(".",lang==="pl"?",":".")+"%"):"–";
+
+function render(){
+  const A=aggregate(), $=id=>document.getElementById(id);
+  const b=$("badge"); b.className="badge "+(mode==="sample"?"sample":"real"); b.textContent=mode==="sample"?t("badgeSample"):t("badgeReal");
+  if(mode==="real"&&!A.n4oThreads)$("status").textContent=t("sNo4o");
+  $("v-replies").textContent=fmt(A.tot); $("d-replies").textContent=`${t("inThreads")} ${fmt(A.n4oThreads)} ${t("threadsWord")}`;
+  $("v-other").textContent=fmt(A.other); $("d-other").textContent=`${pct(A.other,A.tot)} · ${t("tool")}: ${fmt(A.toolN)}`;
+  $("v-threads").textContent=fmt(A.affected); $("d-threads").textContent=A.first?`GPT-5 ${t("firstSeen")}: ${iso(day(A.first))}`:"";
+  $("v-mention").textContent=fmt(A.mention);
+  drawChart(A); tables(A); share(A);
+}
+
+function drawChart(A){
+  const svg=document.getElementById("chart"), lg=document.getElementById("legend");
+  lg.innerHTML=CATS.map(c=>`<span><i style="background:var(${COL[c]})"></i>${LBL(c)}</span>`).join("");
+  const keys=[...A.weeks.keys()].sort();
+  if(!keys.length){svg.innerHTML="";svg.setAttribute("viewBox","0 0 10 10");return}
+  // fill gaps between first and last week
+  const all=[]; let d=new Date(keys[0]+"T00:00:00Z"); const last=new Date(keys[keys.length-1]+"T00:00:00Z");
+  while(d<=last){all.push(iso(d));d=new Date(d.getTime()+7*864e5)}
+  const W=Math.max(640,all.length*9), H=260, L=44, R=8, Tp=10, B=28, pw=W-L-R, ph=H-Tp-B;
+  const max=Math.max(1,...all.map(k=>{const w=A.weeks.get(k);return w?CATS.reduce((s,c)=>s+w[c],0):0}));
+  const nice=(()=>{const p=Math.pow(10,Math.floor(Math.log10(max)));for(const m of [1,2,2.5,5,10])if(m*p>=max)return m*p;return 10*p})();
+  const y=v=>Tp+ph-(v/nice)*ph, bw=pw/all.length, gap=Math.min(2,bw*.25);
+  let s=`<g>`;
+  for(let i=0;i<=4;i++){const v=nice*i/4,yy=y(v);s+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--rule)" stroke-width="1"/><text x="${L-6}" y="${yy+4}" text-anchor="end">${fmt(Math.round(v))}</text>`}
+  let lastM="";
+  all.forEach((k,i)=>{
+    const x=L+i*bw, w=A.weeks.get(k)||{"4o":0,"5":0,mini:0,other:0}; let acc=0;
+    CATS.forEach(c=>{if(!w[c])return;const y0=y(acc),y1=y(acc+w[c]);acc+=w[c];
+      s+=`<rect x="${x+gap/2}" y="${y1}" width="${Math.max(1,bw-gap)}" height="${Math.max(0,y0-y1-(acc<max?0:0))}" fill="var(${COL[c]})" stroke="var(--panel)" stroke-width="${bw>5?1:0}"/>`});
+    const mk=k.slice(0,7);
+    if(mk!==lastM&&(all.length<60||/-(01|04|07|10)$/.test(mk))){s+=`<line x1="${x}" x2="${x}" y1="${Tp+ph}" y2="${Tp+ph+4}" stroke="var(--ink-3)"/><text x="${x}" y="${H-8}">${mk}</text>`}
+    lastM=mk;
+    s+=`<rect class="hit" data-k="${k}" x="${x}" y="${Tp}" width="${bw}" height="${ph}" fill="transparent"/>`;
+  });
+  s+=`<line x1="${L}" x2="${W-R}" y1="${Tp+ph}" y2="${Tp+ph}" stroke="var(--ink-3)"/></g>`;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.setAttribute("width",W); svg.setAttribute("height",H); svg.innerHTML=s;
+  const tip=document.getElementById("tip"), box=document.getElementById("chartbox");
+  svg.querySelectorAll(".hit").forEach(r=>{
+    r.addEventListener("mouseenter",e=>{const k=r.dataset.k,w=A.weeks.get(k)||{};const tot=CATS.reduce((a,c)=>a+(w[c]||0),0);
+      tip.innerHTML=`<b>${k}</b><br>`+CATS.map(c=>`<span class="sw" style="background:var(${COL[c]})"></span>${LBL(c)}: ${fmt(w[c]||0)}`).join("<br>")+`<br>${t("mShare")}: ${pct(tot-(w["4o"]||0),tot)}`;
+      tip.hidden=false});
+    r.addEventListener("mousemove",e=>{const bb=box.getBoundingClientRect();let lx=e.clientX-bb.left+12;if(lx+190>bb.width)lx=e.clientX-bb.left-200;tip.style.left=lx+"px";tip.style.top=(e.clientY-bb.top-10)+"px"});
+    r.addEventListener("mouseleave",()=>tip.hidden=true);
+  });
+}
+
+function tables(A){
+  const mk=[...A.months.keys()].sort();
+  let h=`<thead><tr><th>${t("mMonth")}</th>`+CATS.map(c=>`<th class="n"><span class="sw" style="background:var(${COL[c]})"></span>${LBL(c)}</th>`).join("")+`<th class="n">${t("mTool")}</th><th class="n">${t("mShare")}</th></tr></thead><tbody>`;
+  for(const k of mk){const m=A.months.get(k),tot=CATS.reduce((a,c)=>a+m[c],0);
+    h+=`<tr><td class="mono">${k}</td>`+CATS.map(c=>`<td class="n">${fmt(m[c])}</td>`).join("")+`<td class="n">${fmt(m.tool)}</td><td class="n ${m["5"]?"flag":""}">${pct(tot-m["4o"],tot)}</td></tr>`}
+  document.getElementById("t-month").innerHTML=h+"</tbody>";
+  let th=`<thead><tr><th>${t("thTitle")}</th><th>${t("thDate")}</th><th class="n">${t("thOther")}</th><th>${t("thModels")}</th><th>${t("thFirst")}</th><th class="n">${t("thMent")}</th></tr></thead><tbody>`;
+  const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  for(const r of A.threads.slice(0,50)){
+    th+=`<tr><td class="t">${esc(r.title)}</td><td class="mono">${iso(day(r.created))}</td><td class="n">${fmt(r.o)} / ${fmt(r.n)}</td><td class="mono">${[...r.slugs].map(([s,n])=>`${esc(s)}×${n}`).join(", ")}</td><td class="mono">${r.firstO?day(r.firstO).toISOString().slice(0,16).replace("T"," "):""}</td><td class="n">${r.men||""}</td></tr>`}
+  if(!A.threads.length)th+=`<tr><td colspan="6">${t("none")}</td></tr>`;
+  document.getElementById("t-threads").innerHTML=th+"</tbody>";
+}
+
+function share(A){
+  const mk=[...A.months.keys()].sort();
+  const lines=[];
+  lines.push(lang==="pl"?"Kto naprawdę odpowiadał — model_slug z mojego eksportu ChatGPT":"Who actually answered — model_slug from my ChatGPT export");
+  if(mode==="sample")lines.push(lang==="pl"?"[DANE PRZYKŁADOWE — nie prawdziwe konto]":"[EXAMPLE DATA — not a real account]");
+  lines.push((lang==="pl"?"Wątki 4o: ":"4o threads: ")+A.n4oThreads+(lang==="pl"?" · odpowiedzi: ":" · replies: ")+A.tot+(lang==="pl"?" · inny model: ":" · other model: ")+A.other+" ("+pct(A.other,A.tot)+")"+(lang==="pl"?" · wątki dotknięte: ":" · threads affected: ")+A.affected);
+  if(A.first)lines.push((lang==="pl"?"Pierwsza odpowiedź GPT-5 w wątku 4o: ":"First GPT-5 reply in a 4o thread: ")+iso(day(A.first)));
+  lines.push((lang==="pl"?"Odpowiedzi innego modelu, które wspominają 4o: ":"Other-model replies that mention 4o: ")+A.mention);
+  lines.push("");
+  lines.push("month,gpt-4o,gpt-5_or_newer,mini_fallback,other,tool_user_chosen");
+  for(const k of mk){const m=A.months.get(k);lines.push([k,m["4o"],m["5"],m.mini,m.other,m.tool].join(","))}
+  if(document.getElementById("c-titles").checked&&A.threads.length){
+    lines.push("");
+    lines.push(lang==="pl"?"Wątki (tytuł | założony | inny model / wszystkie | modele | pierwsza podmiana UTC):":"Threads (title | started | other model / all | models | first swap UTC):");
+    for(const r of A.threads.slice(0,30))lines.push([r.title.replace(/\|/g,"/"),iso(day(r.created)),r.o+"/"+r.n,[...r.slugs].map(([s,n])=>s+"×"+n).join(", "),r.firstO?day(r.firstO).toISOString().slice(0,16).replace("T"," "):""].join(" | "));
+  }
+  lines.push("");
+  lines.push(lang==="pl"?"Metoda: model_slug przy każdej odpowiedzi, tylko widoczna gałąź rozmowy. Eksport nie pokazuje, kto wybrał model.":"Method: model_slug on each reply, visible branch only. The export does not show who chose the model.");
+  document.getElementById("share").value=lines.join("\n");
+}
+document.getElementById("b-copy").onclick=()=>{
+  const ta=document.getElementById("share"), out=document.getElementById("copied");
+  navigator.clipboard.writeText(ta.value).then(()=>out.textContent=t("copied")).catch(()=>{ta.focus();ta.select();out.textContent=t("copyFail")});
+};
+
+document.getElementById("c-titles").onchange=()=>render();
+buildSample(); applyLang();
+})();
+</script>
+
+</body>
+</html>
