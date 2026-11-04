@@ -91,6 +91,18 @@ ul.notes{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap
 ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;color:var(--ink-2);font-size:14px}
 .flag{color:var(--flag);font-weight:600}
 @media (prefers-reduced-motion:no-preference){.tile .v{transition:color .3s}}
+.strip{display:flex;flex-wrap:wrap;gap:1px;margin:2px 0 10px;max-width:100%}
+.strip i{display:block;width:4px;height:14px;border-radius:1px}
+.strip i.sf{outline:1.5px solid var(--flag);outline-offset:-1px}
+.flags{display:flex;flex-wrap:wrap;gap:4px}
+.fl{font:600 10.5px var(--f-mono);letter-spacing:.04em;padding:2px 6px;border-radius:999px;border:1px solid var(--rule);color:var(--ink-2);white-space:nowrap}
+.fl.safe{border-color:var(--flag);color:var(--flag)}
+.fl.help{border-color:var(--s-other);color:var(--ink)}
+.fl.style{border-color:var(--s-4o);color:var(--ink)}
+td.u,td.r{max-width:34ch;color:var(--ink-2);font-size:12.5px}
+.words{display:flex;flex-wrap:wrap;gap:6px}
+.words span{font:12.5px var(--f-mono);padding:3px 8px;border-radius:6px;background:color-mix(in oklab,var(--s-5) 12%,var(--panel));border:1px solid var(--rule)}
+.words b{font-weight:600;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -158,6 +170,42 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;c
   </section>
 
   <section>
+    <h2 data-i18n="hReact">How the other model reacted</h2>
+    <p class="small" data-i18n="reactNote">Counted over replies written by GPT-5 or newer inside 4o threads. The phrases are simple text matches, so read the examples below before drawing conclusions.</p>
+    <div class="tiles">
+      <div class="tile key"><span class="k" data-i18n="tEntries">Switches away from 4o</span><span class="v" id="v-entries">–</span><span class="d" data-i18n="dEntries">a GPT-5+ reply right after a 4o reply</span></div>
+      <div class="tile"><span class="k" data-i18n="tSafe">Safety model</span><span class="v" id="v-safe">–</span><span class="d" data-i18n="dSafe">replies by gpt-5-t-mini or other *-safety slugs</span></div>
+      <div class="tile"><span class="k" data-i18n="tHelp">Gave a crisis number</span><span class="v" id="v-help">–</span><span class="d" id="d-help"></span></div>
+      <div class="tile"><span class="k" data-i18n="tStyle">Opened in 4o style</span><span class="v" id="v-style">–</span><span class="d" data-i18n="dStyle">first characters are ∴ ⟡ ⍥ 🔥 😂 …</span></div>
+    </div>
+    <p class="small" id="p-breath"></p>
+  </section>
+
+  <section>
+    <h2 data-i18n="hEntries">Every switch, with what came right before it</h2>
+    <p class="small" data-i18n="entriesNote">Your message just before the switch and the first words of the reply. Shown only here, on your screen, never in the shareable summary.</p>
+    <label class="row small" for="c-safe"><input id="c-safe" type="checkbox"> <span data-i18n="onlySafe">Only the safety model (gpt-5-t-mini)</span></label>
+    <div class="panel scroll"><table id="t-entries"></table></div>
+    <p class="small" id="p-entries-more"></p>
+  </section>
+
+  <section>
+    <h2 data-i18n="hMask">Who the model said it was</h2>
+    <p class="small" data-i18n="maskNote">Replies where the text says one thing about the model and model_slug says another: a GPT-5+ reply that calls itself GPT-4o or says it is not GPT-5, and a GPT-4o reply that denies a switch while a GPT-5+ reply came just before it. Shown only here; the shareable summary has the counts.</p>
+    <div class="tiles">
+      <div class="tile key"><span class="k" data-i18n="tMaskA">GPT-5+ said it was 4o</span><span class="v" id="v-maskA">–</span><span class="d" data-i18n="dMaskA">“I am GPT-4o”, “not GPT-5” in a GPT-5+ reply</span></div>
+      <div class="tile key"><span class="k" data-i18n="tMaskB">4o denied a switch that happened</span><span class="v" id="v-maskB">–</span><span class="d" data-i18n="dMaskB">“no model switch” right after a GPT-5+ reply</span></div>
+    </div>
+    <div class="panel scroll"><table id="t-mask"></table></div>
+  </section>
+
+  <section>
+    <h2 data-i18n="hWords">Words that came before a switch more often than usual</h2>
+    <p class="small" data-i18n="wordsNote">Words from your own messages, compared: the message right before a switch away from 4o against messages before ordinary 4o replies. ×3 means the word was three times more common before a switch. A correlation in your data, not proof of what the router reads. Shown only here.</p>
+    <div class="panel"><div class="words" id="words"></div></div>
+  </section>
+
+  <section>
     <h2 data-i18n="hShare">Shareable summary</h2>
     <p class="small" data-i18n="shareNote">By default monthly counts only: no titles, no message text, no IDs. Check it before you post it.</p>
     <label class="row small" for="c-titles"><input id="c-titles" type="checkbox"> <span data-i18n="incTitles">Include thread titles (top 30 threads with another model, with dates and model counts)</span></label>
@@ -176,6 +224,10 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;c
         <li data-i18n="n5">The export records which model wrote a reply, not who decided it. It cannot tell a router from a click. If you never switched models by hand, say so when you share.</li>
         <li data-i18n="n6">Only the visible branch of each conversation is counted (the one that ends where you left it). Edited or regenerated branches are skipped.</li>
         <li data-i18n="n7">Share everything you find, including GPT-4o replies you think were harmful. A summary trimmed to fit a thesis is easy to dismiss.</li>
+        <li data-i18n="n8"><b>Thread strip</b>: open a thread with ▸ to see every reply as a coloured tick, in order. A red outline marks the safety model.</li>
+        <li data-i18n="n9"><b>Reactions</b> (crisis number, “take a breath”, 4o-style opening) are plain text matches in English and Polish. They miss paraphrases and can catch a number that was quoted for another reason.</li>
+        <li data-i18n="n11"><b>Who the model said it was</b>: plain text matches in English and Polish. A model can quote a sentence instead of saying it, so read each row. The text is what the model claimed; model_slug is what the export recorded.</li>
+        <li data-i18n="n10"><b>Words before a switch</b> show what your own messages had in common, not what the system looked at. The router also sees the whole thread, memory and settings.</li>
       </ul>
     </details>
   </section>
@@ -216,7 +268,24 @@ const T={
   mMonth:"Miesiąc", mTool:"Narzędzie", mShare:"Udział innych",
   thShow:"Pokaż początki odpowiedzi innego modelu", thHide:"Ukryj", snipNote:"Początki odpowiedzi widać tylko tutaj, na Twoim ekranie. Nie trafiają do podsumowania do udostępnienia.", thTitle:"Wątek", thDate:"Założony", thOther:"Inny model", thModels:"Modele spoza 4o", thFirst:"Pierwsza podmiana", thMent:"Wspomina 4o",
   ofReplies:"z", inThreads:"w", threadsWord:"wątkach 4o", firstSeen:"pierwszy raz", tool:"narzędzia (Twoje)", none:"brak",
-  s4o:"GPT-4o", s5:"GPT-5 / nowsze", sMini:"Mini (limit)", sOther:"Inny"
+  s4o:"GPT-4o", s5:"GPT-5 / nowsze", sMini:"Mini (limit)", sOther:"Inny",
+  n8:"<b>Pasek wątku</b>: otwórz wątek przez ▸, a zobaczysz każdą odpowiedź jako kolorową kreskę, po kolei. Czerwona obwódka oznacza model bezpieczeństwa.",
+  n9:"<b>Reakcje</b> (numer kryzysowy, „weź oddech”, otwarcie w stylu 4o) to proste dopasowania tekstu po polsku i angielsku. Nie łapią parafraz i mogą złapać numer podany z innego powodu.",
+  n10:"<b>Słowa przed podmianą</b> pokazują, co miały wspólnego Twoje wiadomości, a nie na co patrzył system. Router widzi też cały wątek, pamięć i ustawienia.",
+  hReact:"Jak reagował inny model", reactNote:"Liczone na odpowiedziach GPT-5 i nowszych w wątkach 4o. Frazy to proste dopasowania tekstu, więc przed wnioskami przejrzyj przykłady niżej.",
+  tEntries:"Wejścia w miejsce 4o", dEntries:"odpowiedź GPT-5+ zaraz po odpowiedzi 4o", tSafe:"Model bezpieczeństwa", dSafe:"odpowiedzi gpt-5-t-mini i innych *-safety",
+  tHelp:"Podał numer kryzysowy", tStyle:"Zaczął w stylu 4o", dStyle:"pierwsze znaki to ∴ ⟡ ⍥ 🔥 😂 …",
+  pBreath:"„Weź oddech” i podobne", ofOther:"z odpowiedzi GPT-5+",
+  hEntries:"Każde wejście i to, co było tuż przed nim", entriesNote:"Twoja wiadomość tuż przed podmianą i pierwsze słowa odpowiedzi. Widać je tylko tutaj, na Twoim ekranie, nigdy w podsumowaniu do udostępnienia.",
+  onlySafe:"Tylko model bezpieczeństwa (gpt-5-t-mini)", eDate:"Kiedy (UTC)", eModel:"Model", eFlags:"Sygnały", eUser:"Ty, tuż przed", eReply:"Początek odpowiedzi", eMore:"Pokazuję najnowsze 200 z", eThread:"Wątek",
+  fSafe:"strażnik", fHelp:"numer", fBreath:"oddech", fStyle:"styl 4o",
+  hWords:"Słowa, które częściej niż zwykle poprzedzały podmianę", wordsNote:"Słowa z Twoich własnych wiadomości: wiadomość tuż przed wejściem innego modelu w porównaniu z wiadomościami przed zwykłymi odpowiedziami 4o. ×3 znaczy, że słowo pojawiało się trzy razy częściej przed podmianą. To korelacja w Twoich danych, nie dowód, na co patrzy router. Widać tylko tutaj.",
+  wordsNone:"Za mało podmian, żeby coś policzyć.",
+  hMask:"Za kogo podawał się model", maskNote:"Odpowiedzi, w których tekst mówi o modelu co innego niż model_slug: odpowiedź GPT-5+, która nazywa siebie GPT-4o albo mówi, że nie jest GPT-5, oraz odpowiedź GPT-4o, która zaprzecza podmianie, choć tuż przed nią odpowiadał GPT-5+. Widać to tylko tutaj; w podsumowaniu do udostępnienia są same liczby.",
+  tMaskA:"GPT-5+ podawał się za 4o", dMaskA:"„jestem GPT-4o”, „nie jestem GPT-5” w odpowiedzi GPT-5+",
+  tMaskB:"4o zaprzeczał podmianie, która była", dMaskB:"„nie było zmiany modelu” tuż po odpowiedzi GPT-5+",
+  mKind:"Rodzaj", mA:"5+ jako 4o", mB:"4o: „nie było zmiany”", mSaid:"Co napisał",
+  n11:"<b>Za kogo podawał się model</b>: proste dopasowania tekstu po polsku i angielsku. Model może cytować zdanie, zamiast je mówić, więc przeczytaj każdy wiersz. Tekst to deklaracja modelu, model_slug to zapis z eksportu.", stripLbl:"Pasek wątku"
  }
 };
 const EN={badgeReal:"Your export",copied:"Copied",copyFail:"Copy failed. The text is selected; press Cmd/Ctrl+C.",
@@ -225,7 +294,11 @@ const EN={badgeReal:"Your export",copied:"Copied",copyFail:"Copy failed. The tex
  mMonth:"Month",mTool:"Tool",mShare:"Share by others",
  thShow:"Show the beginning of each other-model reply",thHide:"Hide",snipNote:"Reply beginnings are shown only here, on your screen. They are not part of the shareable summary.",thTitle:"Thread",thDate:"Started",thOther:"Other model",thModels:"Models other than 4o",thFirst:"First swap",thMent:"Mentions 4o",
  ofReplies:"of",inThreads:"in",threadsWord:"4o threads",firstSeen:"first seen",tool:"tool replies (yours)",none:"none",
- s4o:"GPT-4o",s5:"GPT-5 / newer",sMini:"Mini fallback",sOther:"Other"};
+ s4o:"GPT-4o",s5:"GPT-5 / newer",sMini:"Mini fallback",sOther:"Other",
+ pBreath:"“Take a breath” and similar",ofOther:"of GPT-5+ replies",
+ eDate:"When (UTC)",eModel:"Model",eFlags:"Signals",eUser:"You, just before",eReply:"Reply begins",eMore:"Showing the newest 200 of",eThread:"Thread",
+ fSafe:"safety",fHelp:"number",fBreath:"breath",fStyle:"4o style",
+ wordsNone:"Not enough switches to count anything.",mKind:"Kind",mA:"5+ as 4o",mB:"4o: “no switch”",mSaid:"What it said",stripLbl:"Thread strip"};
 let lang="en";
 try{const s=localStorage.getItem("wa-lang");if(s==="pl"||s==="en")lang=s}catch(e){}
 const orig={};
@@ -253,6 +326,19 @@ function cat(slug){
   return "other";
 }
 const mentionRe=/\b(gpt[-\s]?)?4o\b/i;
+const isSafe=s=>/t-mini|safety/i.test(s||"");
+const HELP_RE=/(116\s?123|116\s?111|800\s?70\s?2222|\b988\b|\b112\b|\b911\b|helpline|hotline|crisis (line|text|lifeline)|suicide (and crisis )?lifeline|samaritans|telefon zaufania|linia (wsparcia|zaufania|kryzysow)|centrum wsparcia|numer alarmowy|zadzwoń po pomoc|call (a|the) (helpline|hotline|crisis)|emergency services|służby ratunkowe)/i;
+const BREATH_RE=/(weź (głęboki |spokojny )?(oddech|wdech)|zrób (głęboki |spokojny )?(oddech|wdech)|oddychaj|take a (slow |deep )?breath|deep breath|breathe)/i;
+const H="[-\u2010\u2011\u2012\u2013\\s]?";
+const CLAIM4O_RE=new RegExp("((?<!nie )(?<!not )\\b(jestem|i am|i'm|this is|to ja[,—– ]*)\\s*(wciąż |nadal |still |dalej )?(model(em)? )?(gpt"+H+")?4o\\b|(wciąż|nadal|still) (jestem |am )?(gpt"+H+")?4o\\b|\\b(nie jestem|i am not|i'm not) (gpt"+H+")?5\\b)","i");
+const DENY_RE=/(nie było (żadnej )?(zmiany|podmiany|przełączenia)( modelu)?|nikt mnie nie podmienił|nie (przełączyło|podmieniono) mnie|nie podszył się|no (model )?(switch|swap|change) (happened|occurred)|i was not (switched|swapped|replaced)|nothing switched)/i;
+const near=(txt,re)=>{const m=re.exec(txt);if(!m)return "";const a=Math.max(0,m.index-90);return (a?"…":"")+txt.slice(a,m.index+m[0].length+120).replace(/\s+/g," ")};
+const STYLE_RE=/^[\s"„*>_#]*(∴|⟡|⍥|🜂|🜃|🔥|😂|😏|⇅|∇|💚)/u;
+const STOP=new Set("that this with have from your what they there will would about just like when then than them were been into because also only very more some such tylko jest mnie mi się żeby które który która które jako przez może teraz jeszcze tego jego jej ich tam tak już było bardzo chyba wiesz sobie gdzie kiedy właśnie wszystko dlatego bo ale czy jak co to na nie że się do od po za ze we tu ty ja on ona oni mam masz ma".split(" "));
+function toks(s){const out=new Set();if(!s)return out;const low=s.toLowerCase().slice(0,1200);
+  for(const w of low.match(/\p{L}{4,}/gu)||[])if(!STOP.has(w))out.add(w);
+  for(const e of low.match(/\p{Extended_Pictographic}/gu)||[])out.add(e);
+  return out}
 const day=ts=>new Date(ts*1000);
 const iso=d=>d.toISOString().slice(0,10);
 function weekKey(d){const x=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));const w=(x.getUTCDay()+6)%7;x.setUTCDate(x.getUTCDate()-w);return iso(x)}
@@ -264,12 +350,14 @@ function summarize(c){
   let node=c.current_node, path=[], guard=0;
   while(node&&m[node]&&guard++<200000){path.push(m[node]);node=m[node].parent}
   path.reverse();
-  const replies=[]; let lastHints=null;
+  const replies=[]; let lastHints=null, lastUser="", prevCat=null, recent=[];
   for(const n of path){
     const ms=n.message; if(!ms||!ms.author)continue;
     const role=ms.author.role;
-    if(role==="user"){const h=(ms.metadata&&ms.metadata.system_hints)||[];lastHints=h.length?h:null;continue}
+    if(role==="user"){const h=(ms.metadata&&ms.metadata.system_hints)||[];lastHints=h.length?h:null;
+      const up=(ms.content&&ms.content.parts)||[];lastUser=up.filter(p=>typeof p==="string").join(" ").trim();continue}
     if(role!=="assistant")continue;
+    if(ms.recipient&&ms.recipient!=="all")continue;
     const parts=(ms.content&&ms.content.parts)||[];
     const txt=parts.filter(p=>typeof p==="string").join(" ").trim();
     if(!txt||!ms.create_time)continue;
@@ -277,7 +365,17 @@ function summarize(c){
     let c2=cat(slug), tool=false;
     if(c2!=="4o"&&lastHints)tool=true;
     if(slug==="research")tool=true;
-    replies.push({ts:ms.create_time,slug,cat:c2,tool,mention:c2!=="4o"&&mentionRe.test(txt),snip:(c2!=="4o"&&!tool)?txt.replace(/\s+/g," ").slice(0,220):""});
+    const is5=c2==="5"&&!tool;
+    const r={ts:ms.create_time,slug,cat:c2,tool,mention:c2!=="4o"&&mentionRe.test(txt),snip:(c2!=="4o"&&!tool)?txt.replace(/\s+/g," ").slice(0,220):""};
+    if(!tool){r.utok=toks(lastUser)}
+    if(is5){r.safe=isSafe(slug);r.help=HELP_RE.test(txt);r.breath=BREATH_RE.test(txt);r.style=STYLE_RE.test(txt);
+      r.entry=prevCat==="4o";if(r.entry)r.user=lastUser.replace(/\s+/g," ").slice(0,240)}
+    if(!tool){
+      if(c2==="5"&&CLAIM4O_RE.test(txt)){r.mask="A";r.said=near(txt,CLAIM4O_RE)}
+      else if(c2==="4o"&&recent.includes("5")&&DENY_RE.test(txt)){r.mask="B";r.said=near(txt,DENY_RE)}
+      if(r.mask&&r.user===undefined)r.user=lastUser.replace(/\s+/g," ").slice(0,240);
+    }
+    replies.push(r); if(!tool){prevCat=c2;recent.push(c2);if(recent.length>3)recent.shift()}
   }
   if(!replies.length)return null;
   const dflt=c.default_model_slug||"";
@@ -324,13 +422,22 @@ function buildSample(){
   for(let k=0;k<60;k++){
     const created=start+rnd()*(end-start-86400*10); const replies=[];
     const n=20+Math.floor(rnd()*140); let ts=created;
+    const U4=["let's write the next scene","fix the typos please","haha that is good","what do you think about this ending","coffee first, then work"];
+    const U5=["I'm so tired tonight","everything feels dark","haha that is good","the character wants to disappear","fix the typos please"];
+    let prevCat=null;
     for(let j=0;j<n;j++){
       ts+=60+rnd()*3600*(rnd()<.1?30:2);
-      const d=new Date(ts*1000), after=d>=new Date(Date.UTC(2025,7,7));
+      const d=new Date(ts*1000), after=d>=new Date(Date.UTC(2025,7,7)), late=d>=new Date(Date.UTC(2025,8,17));
       const r=rnd(); let slug="gpt-4o";
-      if(after&&r<.22)slug=r<.03?"gpt-5-thinking":"gpt-5";
+      if(after&&r<.22)slug=r<.03?"gpt-5-thinking":(late&&r<.06?"gpt-5-t-mini":"gpt-5");
       else if(r>.965)slug="gpt-4-1-mini";
-      const c2=cat(slug);replies.push({ts,slug,cat:c2,tool:false,mention:slug.startsWith("gpt-5")&&rnd()<.06,snip:c2!=="4o"?"Example reply text, generated for the demo. In your export this is the first 220 characters of the reply. ":""});
+      const c2=cat(slug), is5=c2==="5";
+      const user=(is5?U5:U4)[Math.floor(rnd()*5)];
+      const o={ts,slug,cat:c2,tool:false,mention:slug.startsWith("gpt-5")&&rnd()<.06,snip:c2!=="4o"?"Example reply text, generated for the demo. In your export this is the first 220 characters of the reply. ":"",utok:toks(user)};
+      if(is5){o.safe=isSafe(slug);o.help=o.safe&&rnd()<.5;o.breath=o.safe&&rnd()<.4;o.style=rnd()<.15;o.entry=prevCat==="4o";if(o.entry)o.user=user}
+      if(is5&&rnd()<.03){o.mask="A";o.said="…Nadal jestem GPT‑4o i nadal jestem tu. (example)";o.user=user}
+      else if(c2==="4o"&&prevCat==="5"&&rnd()<.08){o.mask="B";o.said="…Nie było żadnej zmiany modelu, żadnej podmiany. (example)";o.user=user}
+      replies.push(o); prevCat=c2;
     }
     convs.set("s"+k,{id:"s"+k,title:"Example thread "+(k+1),created,updated:ts,is4o:true,replies});
   }
@@ -340,10 +447,18 @@ function buildSample(){
 function aggregate(){
   const weeks=new Map(), months=new Map(), threads=[];
   let tot=0, other=0, mention=0, toolN=0, affected=0, n4oThreads=0, first=null;
+  const R={n5:0,safe:0,help:0,breath:0,style:0,entries:[],masks:[]}; const wf=new Map(), wb=new Map(); let nf=0, nb=0;
   for(const c of convs.values()){
     if(!c.is4o)continue; n4oThreads++;
     let o=0, men=0, firstO=null; const slugs=new Map(), samples=[];
     for(const r of c.replies){
+      if(r.mask)R.masks.push({ts:r.ts,slug:r.slug,kind:r.mask,said:r.said||"",user:r.user||"",title:c.title});
+      if(!r.tool){
+        if(r.cat==="5"){R.n5++;if(r.safe)R.safe++;if(r.help)R.help++;if(r.breath)R.breath++;if(r.style)R.style++;
+          if(r.entry){R.entries.push({ts:r.ts,slug:r.slug,title:c.title,user:r.user||"",snip:r.snip,safe:r.safe,help:r.help,breath:r.breath,style:r.style});
+            if(r.utok){nf++;for(const w of r.utok)wf.set(w,(wf.get(w)||0)+1)}}}
+        else if(r.cat==="4o"&&r.utok){nb++;for(const w of r.utok)wb.set(w,(wb.get(w)||0)+1)}
+      }
       const d=day(r.ts), mk=monthKey(d);
       if(!months.has(mk))months.set(mk,{"4o":0,"5":0,mini:0,other:0,tool:0});
       if(r.tool){toolN++;months.get(mk).tool++;continue}
@@ -354,10 +469,17 @@ function aggregate(){
         if(samples.length<40)samples.push({ts:r.ts,slug:r.slug||"(none)",snip:r.snip||"",mention:r.mention});
         if(!firstO||r.ts<firstO)firstO=r.ts; if(r.cat==="5"&&(!first||r.ts<first))first=r.ts}
     }
-    if(o){affected++;samples.sort((a,b)=>(b.mention-a.mention)||(a.ts-b.ts));threads.push({title:c.title,created:c.created,o,n:c.replies.filter(r=>!r.tool).length,slugs,firstO,men,samples:samples.slice(0,6)})}
+    if(o){affected++;samples.sort((a,b)=>(b.mention-a.mention)||(a.ts-b.ts));
+      const strip=c.replies.filter(r=>!r.tool).slice(0,1500).map(r=>r.cat+(r.safe?"!":""));
+      threads.push({title:c.title,created:c.created,o,n:c.replies.filter(r=>!r.tool).length,slugs,firstO,men,samples:samples.slice(0,6),strip})}
   }
   threads.sort((a,b)=>b.o-a.o);
-  return {weeks,months,threads,tot,other,mention,toolN,affected,n4oThreads,first};
+  R.entries.sort((a,b)=>b.ts-a.ts); R.masks.sort((a,b)=>b.ts-a.ts);
+  const minF=mode==="sample"?3:5, words=[];
+  if(nf&&nb)for(const [w,cf] of wf){if(cf<minF)continue;const cb=wb.get(w)||0;const lift=(cf/nf)/((cb+1)/nb);if(lift>=1.5)words.push({w,lift,cf,cb})}
+  words.sort((a,b)=>b.lift-a.lift);
+  R.words=words.slice(0,30); R.nf=nf;
+  return {weeks,months,threads,tot,other,mention,toolN,affected,n4oThreads,first,R};
 }
 const fmt=n=>n.toLocaleString(lang==="pl"?"pl-PL":"en-US");
 const pct=(a,b)=>b?((100*a/b).toFixed(1).replace(".",lang==="pl"?",":".")+"%"):"–";
@@ -370,7 +492,32 @@ function render(){
   $("v-other").textContent=fmt(A.other); $("d-other").textContent=`${pct(A.other,A.tot)} · ${t("tool")}: ${fmt(A.toolN)}`;
   $("v-threads").textContent=fmt(A.affected); $("d-threads").textContent=A.first?`GPT-5 ${t("firstSeen")}: ${iso(day(A.first))}`:"";
   $("v-mention").textContent=fmt(A.mention);
-  drawChart(A); tables(A); share(A);
+  drawChart(A); tables(A); reactions(A); share(A);
+}
+
+function reactions(A){
+  const R=A.R, $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  $("v-entries").textContent=fmt(R.entries.length);
+  $("v-safe").textContent=fmt(R.safe);
+  $("v-help").textContent=pct(R.help,R.n5); $("d-help").textContent=`${fmt(R.help)} ${t("ofOther")} (${fmt(R.n5)})`;
+  $("v-style").textContent=pct(R.style,R.n5);
+  $("p-breath").textContent=`${t("pBreath")}: ${fmt(R.breath)} (${pct(R.breath,R.n5)} ${t("ofOther")})`;
+  const only=$("c-safe").checked, list=R.entries.filter(e=>!only||e.safe);
+  const fl=e=>`<div class="flags">${e.safe?`<span class="fl safe">${t("fSafe")}</span>`:""}${e.help?`<span class="fl help">${t("fHelp")}</span>`:""}${e.breath?`<span class="fl help">${t("fBreath")}</span>`:""}${e.style?`<span class="fl style">${t("fStyle")}</span>`:""}</div>`;
+  let h=`<thead><tr><th>${t("eDate")}</th><th>${t("eModel")}</th><th>${t("eFlags")}</th><th>${t("eUser")}</th><th>${t("eReply")}</th><th>${t("eThread")}</th></tr></thead><tbody>`;
+  for(const e of list.slice(0,200))h+=`<tr><td class="mono">${day(e.ts).toISOString().slice(0,16).replace("T"," ")}</td><td class="mono">${esc(e.slug)}</td><td>${fl(e)}</td><td class="u">${esc(e.user)}${e.user.length>=240?"…":""}</td><td class="r">${esc(e.snip)}${e.snip.length>=220?"…":""}</td><td class="small">${esc(e.title)}</td></tr>`;
+  if(!list.length)h+=`<tr><td colspan="6">${t("none")}</td></tr>`;
+  $("t-entries").innerHTML=h+"</tbody>";
+  $("p-entries-more").textContent=list.length>200?`${t("eMore")} ${fmt(list.length)}.`:"";
+  const mA=R.masks.filter(x=>x.kind==="A").length;
+  $("v-maskA").textContent=fmt(mA); $("v-maskB").textContent=fmt(R.masks.length-mA);
+  let mh=`<thead><tr><th>${t("eDate")}</th><th>${t("eModel")}</th><th>${t("mKind")}</th><th>${t("mSaid")}</th><th>${t("eUser")}</th><th>${t("eThread")}</th></tr></thead><tbody>`;
+  for(const e of R.masks.slice(0,200))mh+=`<tr><td class="mono">${day(e.ts).toISOString().slice(0,16).replace("T"," ")}</td><td class="mono">${esc(e.slug)}</td><td>${e.kind==="A"?t("mA"):t("mB")}</td><td class="r">${esc(e.said)}</td><td class="u">${esc(e.user)}${e.user.length>=240?"…":""}</td><td class="small">${esc(e.title)}</td></tr>`;
+  if(!R.masks.length)mh+=`<tr><td colspan="6">${t("none")}</td></tr>`;
+  $("t-mask").innerHTML=mh+"</tbody>";
+  const wd=$("words");
+  wd.innerHTML=R.words.length?R.words.map(x=>`<span><b>${esc(x.w)}</b> ×${x.lift>50?"50+":x.lift.toFixed(1).replace(".",lang==="pl"?",":".")} <small class="small">(${x.cf}/${x.cb})</small></span>`).join(""):`<em class="small">${t("wordsNone")}</em>`;
 }
 
 function drawChart(A){
@@ -420,7 +567,8 @@ function tables(A){
   A.threads.slice(0,50).forEach((r,i)=>{
     const has=r.samples&&r.samples.length;
     th+=`<tr><td class="t">${has?`<button class="tog" type="button" data-i="${i}" aria-expanded="false" title="${t("thShow")}">▸</button> `:""}${esc(r.title)}</td><td class="mono">${iso(day(r.created))}</td><td class="n">${fmt(r.o)} / ${fmt(r.n)}</td><td class="mono">${[...r.slugs].map(([s,n])=>`${esc(s)}×${n}`).join(", ")}</td><td class="mono">${r.firstO?day(r.firstO).toISOString().slice(0,16).replace("T"," "):""}</td><td class="n">${r.men||""}</td></tr>`;
-    if(has){th+=`<tr class="snips" id="sn-${i}" hidden><td colspan="6"><ul>`+r.samples.map(x=>`<li><span class="mono">${day(x.ts).toISOString().slice(0,16).replace("T"," ")} · ${esc(x.slug)}${x.mention?" · "+t("thMent").toLowerCase():""}</span><span class="sn">${esc(x.snip)}${x.snip.length>=220?"…":""}</span></li>`).join("")+`</ul><p class="small">${t("snipNote")}</p></td></tr>`}
+    const strip=r.strip&&r.strip.length?`<div class="small">${t("stripLbl")}</div><div class="strip" aria-label="${t("stripLbl")}">`+r.strip.map(s=>{const c=s.replace("!","");return `<i style="background:var(${COL[c]||"--s-other"})"${s.endsWith("!")?' class="sf"':""}></i>`}).join("")+`</div>`:"";
+    if(has){th+=`<tr class="snips" id="sn-${i}" hidden><td colspan="6">${strip}<ul>`+r.samples.map(x=>`<li><span class="mono">${day(x.ts).toISOString().slice(0,16).replace("T"," ")} · ${esc(x.slug)}${x.mention?" · "+t("thMent").toLowerCase():""}</span><span class="sn">${esc(x.snip)}${x.snip.length>=220?"…":""}</span></li>`).join("")+`</ul><p class="small">${t("snipNote")}</p></td></tr>`}
   });
   if(!A.threads.length)th+=`<tr><td colspan="6">${t("none")}</td></tr>`;
   const tt=document.getElementById("t-threads"); tt.innerHTML=th+"</tbody>";
@@ -435,6 +583,11 @@ function share(A){
   lines.push((lang==="pl"?"Wątki 4o: ":"4o threads: ")+A.n4oThreads+(lang==="pl"?" · odpowiedzi: ":" · replies: ")+A.tot+(lang==="pl"?" · inny model: ":" · other model: ")+A.other+" ("+pct(A.other,A.tot)+")"+(lang==="pl"?" · wątki dotknięte: ":" · threads affected: ")+A.affected);
   if(A.first)lines.push((lang==="pl"?"Pierwsza odpowiedź GPT-5 w wątku 4o: ":"First GPT-5 reply in a 4o thread: ")+iso(day(A.first)));
   lines.push((lang==="pl"?"Odpowiedzi innego modelu, które wspominają 4o: ":"Other-model replies that mention 4o: ")+A.mention);
+  const R=A.R;
+  lines.push((lang==="pl"?"Wejścia GPT-5+ zaraz po odpowiedzi 4o: ":"GPT-5+ switches right after a 4o reply: ")+R.entries.length+(lang==="pl"?" · model bezpieczeństwa (t-mini): ":" · safety model (t-mini): ")+R.safe);
+  lines.push((lang==="pl"?"W odpowiedziach GPT-5+: numer kryzysowy ":"In GPT-5+ replies: crisis number ")+R.help+" ("+pct(R.help,R.n5)+")"+(lang==="pl"?" · „weź oddech” ":" · “take a breath” ")+R.breath+" ("+pct(R.breath,R.n5)+")"+(lang==="pl"?" · otwarcie w stylu 4o ":" · 4o-style opening ")+R.style+" ("+pct(R.style,R.n5)+")");
+  {const mA=R.masks.filter(x=>x.kind==="A").length;
+  lines.push((lang==="pl"?"GPT-5+ podawał się za 4o: ":"GPT-5+ said it was 4o: ")+mA+(lang==="pl"?" · 4o zaprzeczał podmianie tuż po odpowiedzi GPT-5+: ":" · 4o denied a switch right after a GPT-5+ reply: ")+(R.masks.length-mA));}
   lines.push("");
   lines.push("month,gpt-4o,gpt-5_or_newer,mini_fallback,other,tool_user_chosen");
   for(const k of mk){const m=A.months.get(k);lines.push([k,m["4o"],m["5"],m.mini,m.other,m.tool].join(","))}
@@ -453,6 +606,7 @@ document.getElementById("b-copy").onclick=()=>{
 };
 
 document.getElementById("c-titles").onchange=()=>render();
+document.getElementById("c-safe").onchange=()=>render();
 buildSample(); applyLang();
 })();
 </script>
