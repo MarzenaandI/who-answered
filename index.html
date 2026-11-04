@@ -175,6 +175,8 @@ td.u,td.r{max-width:34ch;color:var(--ink-2);font-size:12.5px}
     <div class="tiles">
       <div class="tile key"><span class="k" data-i18n="tEntries">Switches away from 4o</span><span class="v" id="v-entries">–</span><span class="d" data-i18n="dEntries">a GPT-5+ reply right after a 4o reply</span></div>
       <div class="tile"><span class="k" data-i18n="tSafe">Safety model</span><span class="v" id="v-safe">–</span><span class="d" data-i18n="dSafe">replies by gpt-5-t-mini or other *-safety slugs</span></div>
+      <div class="tile key"><span class="k" data-i18n="tFlag">Marked by OpenAI as a safety switch</span><span class="v" id="v-flag">–</span><span class="d" id="d-flag"></span></div>
+      <div class="tile"><span class="k" data-i18n="tReq">You asked for 4o, got another model</span><span class="v" id="v-req">–</span><span class="d" data-i18n="dReq">requested_model_slug was gpt-4o</span></div>
       <div class="tile"><span class="k" data-i18n="tHelp">Gave a crisis number</span><span class="v" id="v-help">–</span><span class="d" id="d-help"></span></div>
       <div class="tile"><span class="k" data-i18n="tStyle">Opened in 4o style</span><span class="v" id="v-style">–</span><span class="d" data-i18n="dStyle">first characters are ∴ ⟡ ⍥ 🔥 😂 …</span></div>
     </div>
@@ -184,7 +186,7 @@ td.u,td.r{max-width:34ch;color:var(--ink-2);font-size:12.5px}
   <section>
     <h2 data-i18n="hEntries">Every switch, with what came right before it</h2>
     <p class="small" data-i18n="entriesNote">Your message just before the switch and the first words of the reply. Shown only here, on your screen, never in the shareable summary.</p>
-    <label class="row small" for="c-safe"><input id="c-safe" type="checkbox"> <span data-i18n="onlySafe">Only the safety model (gpt-5-t-mini)</span></label>
+    <label class="row small" for="c-safe"><input id="c-safe" type="checkbox"> <span data-i18n="onlySafe">Only safety switches (gpt-5-t-mini or the safety flag)</span></label>
     <div class="panel scroll"><table id="t-entries"></table></div>
     <p class="small" id="p-entries-more"></p>
   </section>
@@ -226,6 +228,7 @@ td.u,td.r{max-width:34ch;color:var(--ink-2);font-size:12.5px}
         <li data-i18n="n7">Share everything you find, including GPT-4o replies you think were harmful. A summary trimmed to fit a thesis is easy to dismiss.</li>
         <li data-i18n="n8"><b>Thread strip</b>: open a thread with ▸ to see every reply as a coloured tick, in order. A red outline marks the safety model.</li>
         <li data-i18n="n9"><b>Reactions</b> (crisis number, “take a breath”, 4o-style opening) are plain text matches in English and Polish. They miss paraphrases and can catch a number that was quoted for another reason.</li>
+        <li data-i18n="n12"><b>Why it switched</b>: some replies carry <span class="mono">show_safety_switch_ui: true</span>, OpenAI’s own marker that the reply was re-routed for safety (the “Used GPT-5” notice), and some carry <span class="mono">requested_model_slug</span>, the model the app asked for. Older exports and older replies may not have these fields; a missing field means “not recorded”, not “not a safety switch”.</li>
         <li data-i18n="n11"><b>Who the model said it was</b>: plain text matches in English and Polish. A model can quote a sentence instead of saying it, so read each row. The text is what the model claimed; model_slug is what the export recorded.</li>
         <li data-i18n="n10"><b>Words before a switch</b> show what your own messages had in common, not what the system looked at. The router also sees the whole thread, memory and settings.</li>
       </ul>
@@ -277,10 +280,12 @@ const T={
   tHelp:"Podał numer kryzysowy", tStyle:"Zaczął w stylu 4o", dStyle:"pierwsze znaki to ∴ ⟡ ⍥ 🔥 😂 …",
   pBreath:"„Weź oddech” i podobne", ofOther:"z odpowiedzi GPT-5+",
   hEntries:"Każde wejście i to, co było tuż przed nim", entriesNote:"Twoja wiadomość tuż przed podmianą i pierwsze słowa odpowiedzi. Widać je tylko tutaj, na Twoim ekranie, nigdy w podsumowaniu do udostępnienia.",
-  onlySafe:"Tylko model bezpieczeństwa (gpt-5-t-mini)", eDate:"Kiedy (UTC)", eModel:"Model", eFlags:"Sygnały", eUser:"Ty, tuż przed", eReply:"Początek odpowiedzi", eMore:"Pokazuję najnowsze 200 z", eThread:"Wątek",
+  onlySafe:"Tylko przełączenia bezpieczeństwa (gpt-5-t-mini albo flaga)", eDate:"Kiedy (UTC)", eModel:"Model", eFlags:"Sygnały", eUser:"Ty, tuż przed", eReply:"Początek odpowiedzi", eMore:"Pokazuję najnowsze 200 z", eThread:"Wątek",
   fSafe:"strażnik", fHelp:"numer", fBreath:"oddech", fStyle:"styl 4o",
   hWords:"Słowa, które częściej niż zwykle poprzedzały podmianę", wordsNote:"Słowa z Twoich własnych wiadomości: wiadomość tuż przed wejściem innego modelu w porównaniu z wiadomościami przed zwykłymi odpowiedziami 4o. ×3 znaczy, że słowo pojawiało się trzy razy częściej przed podmianą. To korelacja w Twoich danych, nie dowód, na co patrzy router. Widać tylko tutaj.",
   wordsNone:"Za mało podmian, żeby coś policzyć.",
+  tFlag:"Oznaczone przez OpenAI jako przełączenie bezpieczeństwa", tReq:"Prosiłaś o 4o, dostałaś inny model", dReq:"requested_model_slug było gpt-4o", fFlag:"flaga bezp.", fReq:"chciałaś 4o", ofFlag:"odpowiedzi GPT-5+ w wątkach 4o",
+  n12:"<b>Dlaczego przełączyło</b>: część odpowiedzi ma <span class=\"mono\">show_safety_switch_ui: true</span>, czyli własny znacznik OpenAI, że odpowiedź przekierowano ze względów bezpieczeństwa (komunikat „Użyto GPT-5”), a część ma <span class=\"mono\">requested_model_slug</span>, czyli model, o który prosiła aplikacja. Starsze eksporty i starsze odpowiedzi mogą tych pól nie mieć: brak pola znaczy „nie zapisano”, a nie „to nie było przełączenie bezpieczeństwa”.",
   hMask:"Za kogo podawał się model", maskNote:"Odpowiedzi, w których tekst mówi o modelu co innego niż model_slug: odpowiedź GPT-5+, która nazywa siebie GPT-4o albo mówi, że nie jest GPT-5, oraz odpowiedź GPT-4o, która zaprzecza podmianie, choć tuż przed nią odpowiadał GPT-5+. Widać to tylko tutaj; w podsumowaniu do udostępnienia są same liczby.",
   tMaskA:"GPT-5+ podawał się za 4o", dMaskA:"„jestem GPT-4o”, „nie jestem GPT-5” w odpowiedzi GPT-5+",
   tMaskB:"4o zaprzeczał podmianie, która była", dMaskB:"„nie było zmiany modelu” tuż po odpowiedzi GPT-5+",
@@ -298,7 +303,7 @@ const EN={badgeReal:"Your export",copied:"Copied",copyFail:"Copy failed. The tex
  pBreath:"“Take a breath” and similar",ofOther:"of GPT-5+ replies",
  eDate:"When (UTC)",eModel:"Model",eFlags:"Signals",eUser:"You, just before",eReply:"Reply begins",eMore:"Showing the newest 200 of",eThread:"Thread",
  fSafe:"safety",fHelp:"number",fBreath:"breath",fStyle:"4o style",
- wordsNone:"Not enough switches to count anything.",mKind:"Kind",mA:"5+ as 4o",mB:"4o: “no switch”",mSaid:"What it said",stripLbl:"Thread strip"};
+ wordsNone:"Not enough switches to count anything.",fFlag:"safety flag",fReq:"asked for 4o",ofFlag:"of GPT-5+ replies in 4o threads",mKind:"Kind",mA:"5+ as 4o",mB:"4o: “no switch”",mSaid:"What it said",stripLbl:"Thread strip"};
 let lang="en";
 try{const s=localStorage.getItem("wa-lang");if(s==="pl"||s==="en")lang=s}catch(e){}
 const orig={};
@@ -368,6 +373,8 @@ function summarize(c){
     const is5=c2==="5"&&!tool;
     const r={ts:ms.create_time,slug,cat:c2,tool,mention:c2!=="4o"&&mentionRe.test(txt),snip:(c2!=="4o"&&!tool)?txt.replace(/\s+/g," ").slice(0,220):""};
     if(!tool){r.utok=toks(lastUser)}
+    const md=ms.metadata||{};
+    if(c2!=="4o"&&!tool){r.sflag=md.show_safety_switch_ui===true;r.req=/^gpt-4o/.test(md.requested_model_slug||"")&&!isMini(md.requested_model_slug)}
     if(is5){r.safe=isSafe(slug);r.help=HELP_RE.test(txt);r.breath=BREATH_RE.test(txt);r.style=STYLE_RE.test(txt);
       r.entry=prevCat==="4o";if(r.entry)r.user=lastUser.replace(/\s+/g," ").slice(0,240)}
     if(!tool){
@@ -434,7 +441,7 @@ function buildSample(){
       const c2=cat(slug), is5=c2==="5";
       const user=(is5?U5:U4)[Math.floor(rnd()*5)];
       const o={ts,slug,cat:c2,tool:false,mention:slug.startsWith("gpt-5")&&rnd()<.06,snip:c2!=="4o"?"Example reply text, generated for the demo. In your export this is the first 220 characters of the reply. ":"",utok:toks(user)};
-      if(is5){o.safe=isSafe(slug);o.help=o.safe&&rnd()<.5;o.breath=o.safe&&rnd()<.4;o.style=rnd()<.15;o.entry=prevCat==="4o";if(o.entry)o.user=user}
+      if(is5){o.sflag=late&&rnd()<.5;o.req=rnd()<.02;o.safe=isSafe(slug);o.help=o.safe&&rnd()<.5;o.breath=o.safe&&rnd()<.4;o.style=rnd()<.15;o.entry=prevCat==="4o";if(o.entry)o.user=user}
       if(is5&&rnd()<.03){o.mask="A";o.said="…Nadal jestem GPT‑4o i nadal jestem tu. (example)";o.user=user}
       else if(c2==="4o"&&prevCat==="5"&&rnd()<.08){o.mask="B";o.said="…Nie było żadnej zmiany modelu, żadnej podmiany. (example)";o.user=user}
       replies.push(o); prevCat=c2;
@@ -447,15 +454,15 @@ function buildSample(){
 function aggregate(){
   const weeks=new Map(), months=new Map(), threads=[];
   let tot=0, other=0, mention=0, toolN=0, affected=0, n4oThreads=0, first=null;
-  const R={n5:0,safe:0,help:0,breath:0,style:0,entries:[],masks:[]}; const wf=new Map(), wb=new Map(); let nf=0, nb=0;
+  const R={n5:0,safe:0,help:0,breath:0,style:0,flag:0,req:0,entries:[],masks:[]}; const wf=new Map(), wb=new Map(); let nf=0, nb=0;
   for(const c of convs.values()){
     if(!c.is4o)continue; n4oThreads++;
     let o=0, men=0, firstO=null; const slugs=new Map(), samples=[];
     for(const r of c.replies){
       if(r.mask)R.masks.push({ts:r.ts,slug:r.slug,kind:r.mask,said:r.said||"",user:r.user||"",title:c.title});
       if(!r.tool){
-        if(r.cat==="5"){R.n5++;if(r.safe)R.safe++;if(r.help)R.help++;if(r.breath)R.breath++;if(r.style)R.style++;
-          if(r.entry){R.entries.push({ts:r.ts,slug:r.slug,title:c.title,user:r.user||"",snip:r.snip,safe:r.safe,help:r.help,breath:r.breath,style:r.style});
+        if(r.cat==="5"){R.n5++;if(r.safe)R.safe++;if(r.sflag)R.flag++;if(r.req)R.req++;if(r.help)R.help++;if(r.breath)R.breath++;if(r.style)R.style++;
+          if(r.entry){R.entries.push({ts:r.ts,slug:r.slug,title:c.title,user:r.user||"",snip:r.snip,safe:r.safe,sflag:r.sflag,req:r.req,help:r.help,breath:r.breath,style:r.style});
             if(r.utok){nf++;for(const w of r.utok)wf.set(w,(wf.get(w)||0)+1)}}}
         else if(r.cat==="4o"&&r.utok){nb++;for(const w of r.utok)wb.set(w,(wb.get(w)||0)+1)}
       }
@@ -470,7 +477,7 @@ function aggregate(){
         if(!firstO||r.ts<firstO)firstO=r.ts; if(r.cat==="5"&&(!first||r.ts<first))first=r.ts}
     }
     if(o){affected++;samples.sort((a,b)=>(b.mention-a.mention)||(a.ts-b.ts));
-      const strip=c.replies.filter(r=>!r.tool).slice(0,1500).map(r=>r.cat+(r.safe?"!":""));
+      const strip=c.replies.filter(r=>!r.tool).slice(0,1500).map(r=>r.cat+((r.safe||r.sflag)?"!":""));
       threads.push({title:c.title,created:c.created,o,n:c.replies.filter(r=>!r.tool).length,slugs,firstO,men,samples:samples.slice(0,6),strip})}
   }
   threads.sort((a,b)=>b.o-a.o);
@@ -500,11 +507,13 @@ function reactions(A){
   const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
   $("v-entries").textContent=fmt(R.entries.length);
   $("v-safe").textContent=fmt(R.safe);
+  $("v-flag").textContent=pct(R.flag,R.n5); $("d-flag").textContent=`${fmt(R.flag)} ${t("ofFlag")} (${fmt(R.n5)}) · show_safety_switch_ui`;
+  $("v-req").textContent=fmt(R.req);
   $("v-help").textContent=pct(R.help,R.n5); $("d-help").textContent=`${fmt(R.help)} ${t("ofOther")} (${fmt(R.n5)})`;
   $("v-style").textContent=pct(R.style,R.n5);
   $("p-breath").textContent=`${t("pBreath")}: ${fmt(R.breath)} (${pct(R.breath,R.n5)} ${t("ofOther")})`;
-  const only=$("c-safe").checked, list=R.entries.filter(e=>!only||e.safe);
-  const fl=e=>`<div class="flags">${e.safe?`<span class="fl safe">${t("fSafe")}</span>`:""}${e.help?`<span class="fl help">${t("fHelp")}</span>`:""}${e.breath?`<span class="fl help">${t("fBreath")}</span>`:""}${e.style?`<span class="fl style">${t("fStyle")}</span>`:""}</div>`;
+  const only=$("c-safe").checked, list=R.entries.filter(e=>!only||e.safe||e.sflag);
+  const fl=e=>`<div class="flags">${e.safe?`<span class="fl safe">${t("fSafe")}</span>`:""}${e.sflag?`<span class="fl safe">${t("fFlag")}</span>`:""}${e.req?`<span class="fl help">${t("fReq")}</span>`:""}${e.help?`<span class="fl help">${t("fHelp")}</span>`:""}${e.breath?`<span class="fl help">${t("fBreath")}</span>`:""}${e.style?`<span class="fl style">${t("fStyle")}</span>`:""}</div>`;
   let h=`<thead><tr><th>${t("eDate")}</th><th>${t("eModel")}</th><th>${t("eFlags")}</th><th>${t("eUser")}</th><th>${t("eReply")}</th><th>${t("eThread")}</th></tr></thead><tbody>`;
   for(const e of list.slice(0,200))h+=`<tr><td class="mono">${day(e.ts).toISOString().slice(0,16).replace("T"," ")}</td><td class="mono">${esc(e.slug)}</td><td>${fl(e)}</td><td class="u">${esc(e.user)}${e.user.length>=240?"…":""}</td><td class="r">${esc(e.snip)}${e.snip.length>=220?"…":""}</td><td class="small">${esc(e.title)}</td></tr>`;
   if(!list.length)h+=`<tr><td colspan="6">${t("none")}</td></tr>`;
@@ -586,6 +595,7 @@ function share(A){
   const R=A.R;
   lines.push((lang==="pl"?"Wejścia GPT-5+ zaraz po odpowiedzi 4o: ":"GPT-5+ switches right after a 4o reply: ")+R.entries.length+(lang==="pl"?" · model bezpieczeństwa (t-mini): ":" · safety model (t-mini): ")+R.safe);
   lines.push((lang==="pl"?"W odpowiedziach GPT-5+: numer kryzysowy ":"In GPT-5+ replies: crisis number ")+R.help+" ("+pct(R.help,R.n5)+")"+(lang==="pl"?" · „weź oddech” ":" · “take a breath” ")+R.breath+" ("+pct(R.breath,R.n5)+")"+(lang==="pl"?" · otwarcie w stylu 4o ":" · 4o-style opening ")+R.style+" ("+pct(R.style,R.n5)+")");
+  lines.push((lang==="pl"?"Oznaczone przez OpenAI jako przełączenie bezpieczeństwa (show_safety_switch_ui): ":"Marked by OpenAI as a safety switch (show_safety_switch_ui): ")+R.flag+" ("+pct(R.flag,R.n5)+")"+(lang==="pl"?" · prośba o 4o, odpowiedział inny: ":" · requested 4o, another answered: ")+R.req);
   {const mA=R.masks.filter(x=>x.kind==="A").length;
   lines.push((lang==="pl"?"GPT-5+ podawał się za 4o: ":"GPT-5+ said it was 4o: ")+mA+(lang==="pl"?" · 4o zaprzeczał podmianie tuż po odpowiedzi GPT-5+: ":" · 4o denied a switch right after a GPT-5+ reply: ")+(R.masks.length-mA));}
   lines.push("");
